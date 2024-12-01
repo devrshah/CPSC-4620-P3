@@ -69,8 +69,7 @@ public final class DBNinja {
 
 	}
 
-	public static void addOrder(Order o) throws SQLException, IOException 
-	{
+	public static void addOrder(Order o) throws SQLException, IOException {
 		/*
 		 * add code to add the order to the DB. Remember that we're not just
 		 * adding the order to the order DB table, but we're also recording
@@ -84,7 +83,64 @@ public final class DBNinja {
 		 * so the cusomter id coming from the Order object will be -1.
 		 * 
 		 */
+		connect_to_db();
+
+		String order = "insert into ordertable(ordertable_OrderID, customer_CustID, ordertable_OrderType, ordertable_OrderDateTime, ordertable_CustPrice, ordertable_BusPrice, ordertable_IsComplete) values (?,?,?,?,?,?,?)";
+		String dineIn_stmt = "insert into dinein(ordertable_OrderID, dinein_TableNum) values (?,?)";
+		String delivery_stmt = "insert into delivery(ordertable_OrderID, delivery_HouseNum, delivery_Street, delivery_City, delivery_State, delivery_Zip, delivery_IsDelivered) values (?,?,?,?,?,?,?)";
+		String pickup_stmt = "insert into pickup(ordertable_OrderID, pickup_IsPickedUp) values (?,?)";
+
+		try{
+				PreparedStatement prepareStatement = conn.prepareStatement(order);
+				prepareStatement.setInt(1,o.getOrderID());
+				prepareStatement.setInt(2,o.getCustID());
+				prepareStatement.setString(3,o.getOrderType());
+				prepareStatement.setString(4,o.getDate());
+				prepareStatement.setDouble(5,o.getCustPrice());
+				prepareStatement.setDouble(6,o.getBusPrice());
+				prepareStatement.setBoolean(7,o.getIsComplete());
+				int rowsUpdated = prepareStatement.executeUpdate();
+
+				if (rowsUpdated == 0) {
+					System.out.println("Error adding order to ordertable - addOrder");
+				}
+
+				if(o instanceof DineinOrder){
+					prepareStatement = conn.prepareStatement(dineIn_stmt);
+					prepareStatement.setInt(1, o.getOrderID());
+					prepareStatement.setInt(2, ((DineinOrder)o).getTableNum());
+					rowsUpdated = prepareStatement.executeUpdate();
+
+					if (rowsUpdated == 0) {
+						System.out.println("Error adding order to dinein - addOrder");
+					}
+				}
+				if(o instanceof PickupOrder){
+					prepareStatement = conn.prepareStatement(pickup_stmt);
+					prepareStatement.setInt(1, o.getOrderID());
+					prepareStatement.setBoolean(2, ((PickupOrder)o).getIsPickedUp());
+					rowsUpdated = prepareStatement.executeUpdate();
+						
+					if (rowsUpdated == 0) {
+						System.out.println("Error adding order to pickup - addOrder");
+					}
+				}
+				else{
+					prepareStatement = conn.prepareStatement(delivery_stmt);
+					prepareStatement.setInt(1, o.getOrderID());
+					prepareStatement.setString(2, ((DeliveryOrder)o).getDate());
+					rowsUpdated = prepareStatement.executeUpdate();
+						
+					if (rowsUpdated == 0) {
+						System.out.println("Error adding order to dinein - addOrder");
+					}
+				}
+			}
+		catch (SQLException e){
+			System.out.println("Error while adding order - addOrder");
+		}
 	}
+
 	
 	public static int addPizza(java.util.Date d, int orderID, Pizza p) throws SQLException, IOException
 	{
@@ -99,7 +155,29 @@ public final class DBNinja {
 		 * This method returns the id of the pizza just added.
 		 * 
 		 */
+		connect_to_db();
 
+		String pizza_stmt = "insert into pizza(pizza_PizzaID, pizza_Size, pizza_CrustType, pizza_PizzaState, pizza_PizzaDate, pizza_CustPrice, pizza_BusPrice, ordertable_OrderID) values (?,?,?,?,?,?,?,?)";
+		try {
+			PreparedStatement prepareStatement = conn.prepareStatement(pizza_stmt);
+			prepareStatement.setInt(1, p.getPizzaID());
+			prepareStatement.setString(2, p.getSize());
+			prepareStatement.setString(3, p.getCrustType());
+			prepareStatement.setString(4, p.getPizzaState());
+			prepareStatement.setString(5, p.getPizzaDate());
+			prepareStatement.setDouble(6, p.getCustPrice());
+			prepareStatement.setDouble(7, p.getBusPrice());
+			prepareStatement.setInt(8, orderID);
+
+			int rowsUpdated = prepareStatement.executeUpdate();
+
+			if (rowsUpdated == 0) {
+				System.out.println("Error adding pizza to pizza table - addPizza");
+			}
+
+		} catch (SQLException e) {
+			System.out.println("Error while adding pizza - addPizza");
+		}
 		return -1;
 	}
 	
@@ -282,6 +360,8 @@ public final class DBNinja {
 		 * Don't forget to order the data coming from the database appropriately.
 		 * 
 		 */
+
+
 		return null;
 	}
 
@@ -452,8 +532,4 @@ public final class DBNinja {
 				else
 					return false;
 			}
-		}
-	}
-
-
-}
+	
